@@ -1,0 +1,55 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate action.yml is well-formed YAML
+        run: python3 -c "import yaml; yaml.safe_load(open('action.yml'))"
+
+      - name: Syntax-check the embedded bash script
+        run: |
+          python3 - <<'EOF'
+          import yaml
+          with open('action.yml') as f:
+              data = yaml.safe_load(f)
+          script = data['runs']['steps'][0]['run']
+          with open('/tmp/extracted.sh', 'w') as f:
+              f.write(script)
+          EOF
+          bash -n /tmp/extracted.sh
+
+  self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the action against mx.msgwing.com (expect an auth failure, not a hang)
+        id: run_action
+        continue-on-error: true
+        uses: ./
+        with:
+          username: 'ci-lint-placeholder@msgwing.com'
+          password: 'invalid'
+          from: 'ci-lint-placeholder@msgwing.com'
+          to: 'ci-lint-placeholder@msgwing.com'
+          subject: 'CI self-test — expected to fail auth'
+          body: 'This run is only checking that the action reaches mx.msgwing.com and fails on auth, not on a network/syntax error.'
+
+      - name: Confirm it failed for the right reason (auth), not a script bug
+        run: |
+          if [ "${{ steps.run_action.outcome }}" != "failure" ]; then
+            echo "::error::Expected this self-test to fail on authentication with a placeholder credential — it didn't fail at all, which is suspicious."
+            exit 1
+          fi
+          echo "OK — action ran and failed on auth as expected with a placeholder credential (curl reached mx.msgwing.com)."

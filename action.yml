@@ -1,0 +1,82 @@
+name: 'ZeroSMTP - Send Email'
+description: 'Send an email through the free ZeroSMTP relay (mx.msgwing.com) — no paid email service or SMTP server needed for CI/CD notifications.'
+author: 'msgwing'
+branding:
+  icon: 'mail'
+  color: 'green'
+
+inputs:
+  username:
+    description: 'ZeroSMTP SMTP username (your @msgwing.com address). Store as a secret, never hardcode.'
+    required: true
+  password:
+    description: 'ZeroSMTP SMTP password. Store as a secret, never hardcode.'
+    required: true
+  from:
+    description: 'From address — usually the same as username.'
+    required: true
+  to:
+    description: 'Recipient address(es). Comma-separated for multiple recipients.'
+    required: true
+  subject:
+    description: 'Email subject.'
+    required: true
+  body:
+    description: 'Plain-text email body.'
+    required: true
+  port:
+    description: "SMTP port: '465' for implicit SSL/TLS (default) or '587' for STARTTLS."
+    required: false
+    default: '465'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Send email via mx.msgwing.com
+      shell: bash
+      env:
+        ZSA_USERNAME: ${{ inputs.username }}
+        ZSA_PASSWORD: ${{ inputs.password }}
+        ZSA_FROM: ${{ inputs.from }}
+        ZSA_TO: ${{ inputs.to }}
+        ZSA_SUBJECT: ${{ inputs.subject }}
+        ZSA_BODY: ${{ inputs.body }}
+        ZSA_PORT: ${{ inputs.port }}
+      run: |
+        set -euo pipefail
+
+        # Strip embedded CR/LF from header fields to prevent header
+        # injection (e.g. a malicious PR title landing in $ZSA_SUBJECT).
+        sanitize() { printf '%s' "$1" | tr -d '\r\n'; }
+        from_h="$(sanitize "$ZSA_FROM")"
+        to_h="$(sanitize "$ZSA_TO")"
+        subject_h="$(sanitize "$ZSA_SUBJECT")"
+
+        if [ "$ZSA_PORT" = "587" ]; then
+          scheme="smtp"
+        else
+          scheme="smtps"
+        fi
+
+        email_body="From: ${from_h}\r\nTo: ${to_h}\r\nSubject: ${subject_h}\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${ZSA_BODY}"
+
+        # Multiple comma-separated recipients each need their own
+        # --mail-rcpt flag (SMTP RCPT TO is one address per command).
+        mail_rcpt_args=()
+        IFS=',' read -ra rcpts <<< "$to_h"
+        for r in "${rcpts[@]}"; do
+          r_trimmed="$(printf '%s' "$r" | xargs)"
+          [ -n "$r_trimmed" ] && mail_rcpt_args+=(--mail-rcpt "$r_trimmed")
+        done
+
+        curl \
+          --url "${scheme}://mx.msgwing.com:${ZSA_PORT}" \
+          --user "${ZSA_USERNAME}:${ZSA_PASSWORD}" \
+          --mail-from "${from_h}" \
+          "${mail_rcpt_args[@]}" \
+          --upload-file <(printf '%b' "$email_body") \
+          --ssl-reqd \
+          --connect-timeout 10 \
+          --max-time 30 \
+          --silent \
+          --show-error

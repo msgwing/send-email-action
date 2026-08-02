@@ -1,5 +1,5 @@
 name: 'ZeroSMTP - Send Email'
-description: 'Send an email through the free ZeroSMTP relay (mx.msgwing.com) — no paid email service or SMTP server needed for CI/CD notifications.'
+description: 'Send email via the free ZeroSMTP relay (mx.msgwing.com) — no paid service or SMTP server needed.'
 author: 'msgwing'
 branding:
   icon: 'mail'

@@ -1,5 +1,9 @@
 # ZeroSMTP — Send Email (GitHub Action)
 
+[![Lint](https://github.com/msgwing/send-email-action/actions/workflows/lint.yml/badge.svg)](https://github.com/msgwing/send-email-action/actions/workflows/lint.yml)
+[![Marketplace](https://img.shields.io/badge/marketplace-ZeroSMTP--Send--Email-blue?logo=github)](https://github.com/marketplace/actions/zerosmtp-send-email)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Send an email from a GitHub Actions workflow through the free
 **[ZeroSMTP](https://github.com/msgwing/ZeroSMTP)** relay (`mx.msgwing.com`) —
 no paid transactional-email service, no SMTP server to run, and no

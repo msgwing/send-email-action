@@ -1,5 +1,5 @@
 name: 'ZeroSMTP - Send Email'
-description: 'Send email over SMTP from a GitHub Actions workflow — free ZeroSMTP relay (mx.msgwing.com), no paid service or SMTP server to run.'
+description: 'Send email over SMTP from a GitHub Actions workflow - free ZeroSMTP relay (mx.msgwing.com), no paid service needed.'
 author: 'msgwing'
 branding:
   icon: 'mail'
